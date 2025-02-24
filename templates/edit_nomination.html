@@ -1,0 +1,44 @@
+
+{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Nomination</title>
+</head>
+<body>
+    {% block content %}
+    <div class="container">
+        <h2>Edit Nomination</h2>
+        <form method="POST" action="{{ url_for('edit_nomination', nomination_id=nomination.id) }}">
+            <div>
+                <label for="nominee_name">Nominee Name</label>
+                <input type="text" name="nominee_name" value="{{ nomination.nominee_name }}" required>
+            </div>
+            <div>
+                <label for="nominee_global_id">Nominee Global ID</label>
+                <input type="text" name="nominee_global_id" value="{{ nomination.nominee_global_id }}" required>
+            </div>
+            <div>
+                <label for="nominee_email">Nominee Email</label>
+                <input type="email" name="nominee_email" value="{{ nomination.nominee_email }}" required>
+            </div>
+            <div>
+                <label for="category_id">Category</label>
+                <select name="category_id" required>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == nomination.category_id %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="comments">Comments</label>
+                <textarea name="comments" required>{{ nomination.comments }}</textarea>
+            </div>
+            <button type="submit">Update Nomination</button>
+        </form>
+    </div>
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,63 @@
+
+{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    {% block content %}
+<div class="container">
+    <h1>Admin Dashboard</h1>
+
+    <!-- Award Nomination Section -->
+    <section id="award-nomination">
+        <h2>Award Nominations</h2>
+        <a href="{{ url_for('new_nomination') }}">Add Nomination</a>
+        <a href="{{ url_for('view_nominees') }}">View Nominees</a>
+        <a href="{{ url_for('category') }}">Add Categories</a>
+        <!-- Additional functionalities like listing nominations can be added here -->
+    </section>
+    <hr>
+
+    <!-- User Management Section -->
+    <section id="user-management">
+        <h2>User Management</h2>
+        <a href="{{ url_for('register') }}">Register Self</a>
+        
+        <h3>Assign Access</h3>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Current Access</th>
+                    <th>Change Access</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.access_level }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('update_access', user_id=user.id) }}">
+                            <select name="access_level">
+                                <option value="full_access" {% if user.access_level == 'full_access' %}selected{% endif %}>Full Access</option>
+                                <option value="view_only" {% if user.access_level == 'view_only' %}selected{% endif %}>View Only</option>
+                                <option value="reviewer" {% if user.access_level == 'reviewer' %}selected{% endif %}>Reviewer</option>
+                            </select>
+                            <button type="submit">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+</div>
+{% endblock %}
+</body>
+</html>

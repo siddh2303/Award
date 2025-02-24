@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>{% block title %}My Project{% endblock %}</title>
+</head>
+<body>
+    <nav>
+        <ul>
+            {% if 'user_id' in session %}
+                {% if session.get('role') == 'Admin' %}
+                    <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('user_dashboard') }}">Dashboard</a></li>
+                {% endif %}
+                {% if session.get('role') == 'Admin' %}
+                    <li><a href="{{ url_for('category') }}">Categories</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            {% else %}
+                <li><a href="{{ url_for('login') }}">Login</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

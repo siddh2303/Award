@@ -1,0 +1,59 @@
+
+{% extends "base.html" %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}View Nominees{% endblock %}</title>
+</head>
+<body>
+    {% block content %}
+    <div class="container">
+        <h2>View Nominees</h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Nominee Global ID</th>
+                    <th>Nominee Name</th>
+                    <th>Nominee Email</th>
+                    <th>Nominated By</th>
+                    <th>Comments</th>
+                    <th>Status</th>
+                    <th>Category</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for nominee in nominees %}
+                    <tr>
+                        <td>{{ nominee.nominee_global_id }}</td>
+                        <td>{{ nominee.nominee_name }}</td>
+                        <td>{{ nominee.nominee_email }}</td>
+                        <td>{{ nominee.nominated_by_name }}</td>
+                        <td>{{ nominee.comments }}</td>
+                        <td>{{ nominee.status }}</td>
+                        <td>{{ nominee.category.name }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('update_nomination_status', nomination_id=nominee.id) }}" style="display:inline;">
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit">Approve</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('update_nomination_status', nomination_id=nominee.id) }}" style="display:inline;">
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit">Reject</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('update_nomination_status', nomination_id=nominee.id) }}" style="display:inline;">
+                                <input type="hidden" name="action" value="send_back">
+                                <button type="submit">Send Back</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Nomination</title>
+</head>
+<body>
+    {% block content %}
+    <h2>New Nomination</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.category_id.label }}<br>
+            {{ form.category_id() }}<br>
+            {% for error in form.category_id.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.nominee_name.label }}<br>
+            {{ form.nominee_name(size=32) }}<br>
+            {% for error in form.nominee_name.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.nominee_global_id.label }}<br>
+            {{ form.nominee_global_id(size=32) }}<br>
+            {% for error in form.nominee_global_id.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.nominee_email.label }}<br>
+            {{ form.nominee_email(size=32) }}<br>
+            {% for error in form.nominee_email.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.nominated_by_name.label }}<br>
+            {{ form.nominated_by_name(size=32, readonly=True) }}<br>
+            {% for error in form.nominated_by_name.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        
+        <p>
+            {{ form.nominated_by_global_id.label }}<br>
+            {{ form.nominated_by_global_id(size=32, readonly=True) }}<br>
+            {% for error in form.nominated_by_global_id.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        
+        <p>
+            {{ form.nominated_by_email.label }}<br>
+            {{ form.nominated_by_email(size=32, readonly=True) }}<br>
+            {% for error in form.nominated_by_email.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.comments.label }}<br>
+            {{ form.comments() }}<br>
+        </p>
+        <p>
+            {{ form.status.label }}<br>
+            {{ form.status(disabled=True) }}<br>
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    <a href="{{ url_for('user_dashboard') }}">Back to Dashboard</a>
+    {% endblock %}
+</body>
+</html>
