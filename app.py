@@ -33,7 +33,6 @@ class LoginForm(FlaskForm):
 
 class CategoryForm(FlaskForm):
     name = StringField('Category Name', validators=[DataRequired()])
-    type = StringField('Type of Category', validators=[DataRequired()])
     start_date = DateField('Start Date', format='%Y-%m-%d', validators=[DataRequired()])
     end_date = DateField('End Date', format='%Y-%m-%d', validators=[DataRequired()])
     submit = SubmitField('Create Category')
@@ -76,6 +75,8 @@ def index():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if session.get('access_level') != 'full_access':
+        return redirect(url_for('login'))
     if request.method == 'POST':
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
@@ -109,6 +110,7 @@ def login():
             session['user_id'] = user.id
             session['gid']=user.gid
             session['role'] = user.role
+            session['access_level']=user.access_level
             session['username'] = username
             session['email']=user.email
             session['logged_in'] = True
@@ -128,7 +130,12 @@ def logout():
     session.pop('logged_in', None)
     return redirect(url_for('login'))
 
+@app.route('/view_categories')
+@login_required
 
+def view_categories():
+    categories = Category.query.filter_by(status=1).all()
+    return render_template('view_categories.html', categories=categories)
 
 @app.route('/edit_nomination/<int:nomination_id>', methods=['GET', 'POST'])
 def edit_nomination(nomination_id):
@@ -156,6 +163,15 @@ def admin_dashboard():
     users=User.query.all()
     categories = Category.query.all()
     return render_template('admin_dashboard.html', categories=categories,users=users)
+
+@app.route('/nomination_dashboard')
+def nomination_dashboard():
+    return render_template('nomination_dashboard.html')
+
+@app.route('/category_dashboard')
+def category_dashboard():
+    return render_template('category_dashboard.html')
+
 
 @app.route('/user')
 @login_required
@@ -192,7 +208,7 @@ def update_access(user_id):
 @login_required
 
 def category():
-    if 'user_id' not in session or session.get('role') != 'Admin':
+    if 'user_id' not in session or session.get('access_level') != 'full_access':
         return redirect(url_for('login'))
     if request.method == 'POST':
         name = request.form['name']
@@ -206,10 +222,56 @@ def category():
         return redirect(url_for('admin_dashboard'))
     return render_template('category.html')
 
+
+@app.route('/category/edit/<int:category_id>', methods=['GET', 'POST'])
+def edit_category(category_id):
+    category = Category.query.get_or_404(category_id)
+    if request.method == 'POST':
+        category.name = request.form['name']
+        start_date_str = request.form['start_date']
+        end_date_str = request.form['end_date']
+
+        try:
+            category.start_date = datetime.strptime(start_date_str, '%Y-%m').date()
+            category.end_date = datetime.strptime(end_date_str, '%Y-%m').date()
+            db.session.commit()
+            flash('Category updated successfully', 'success')
+            return redirect(url_for('view_categories'))
+        except ValueError as e:
+            flash(f'Invalid date format: {e}', 'error')
+            return render_template('edit_category.html', category=category)
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating category: {str(e)}', 'error')
+
+    return render_template('edit_category.html', category=category)
+
+@app.route('/category/delete/<int:category_id>', methods=['GET','POST'])
+def delete_category(category_id):
+    print(f"Attempting to delete category with ID: {category_id}")  # Debug print
+
+    category = Category.query.get_or_404(category_id)
+    try:
+        category.status = 0
+
+        db.session.commit()
+        flash('Category marked as deleted successfully', 'success')
+        print(f"Category with ID {category_id} marked as deleted successfully.")  # Debug print
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error marking category as deleted: {str(e)}', 'error')
+        print(f"Error occurred while marking category with ID {category_id} as deleted: {str(e)}")  # Debug print
+
+    return redirect(url_for('view_categories'))
+
+
 @app.route('/nominations/new', methods=['GET', 'POST'])
 @login_required
 
 def new_nomination():
+    if 'user_id' not in session or session.get('access_level') != 'full_access':
+        return redirect(url_for('login'))
     form = NominationForm()
     form.category_id.choices = [(category.id, category.name) for category in Category.query.all()]
     form.nominated_by_name.data = session['username']
@@ -260,10 +322,11 @@ def update_nomination_status(nomination_id):
 @login_required
 
 def view_nominees():
-    if 'user_id' not in session or session.get('role') != 'Admin':
+    if 'user_id' not in session or session.get('access_level') != 'full_access':
         return redirect(url_for('login'))
     nominees = Nomination.query.all()
-    return render_template('view_nominees.html', nominees=nominees)
+    user = User.query.filter_by(gid=session['gid']).first()
+    return render_template('view_nominees.html', nominees=nominees, user= user)
 
 if __name__ == '__main__':
     app.run(debug=True)

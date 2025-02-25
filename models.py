@@ -17,8 +17,8 @@ class Category(db.Model):
     name = db.Column(db.String(100), nullable=False)
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
-    type = db.Column(db.String(50), nullable=False)
     nominations = db.relationship('Nomination', backref='category', lazy=True)
+    status = db.Column(db.Integer, nullable=False, default=1)
 
 class Nomination(db.Model):
     id = db.Column(db.Integer, primary_key=True)

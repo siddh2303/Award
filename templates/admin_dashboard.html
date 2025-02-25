@@ -15,10 +15,8 @@
     <!-- Award Nomination Section -->
     <section id="award-nomination">
         <h2>Award Nominations</h2>
-        <a href="{{ url_for('new_nomination') }}">Add Nomination</a>
-        <a href="{{ url_for('view_nominees') }}">View Nominees</a>
-        <a href="{{ url_for('category') }}">Add Categories</a>
-        <!-- Additional functionalities like listing nominations can be added here -->
+        <a href="{{ url_for('nomination_dashboard') }}" class="button">Nomination Dashboard</a>
+        <a href="{{ url_for('category_dashboard') }}" class="button">Category Dashboard</a>
     </section>
     <hr>
 
