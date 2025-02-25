@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <title>{% block title %}My Project{% endblock %}</title>
+    <title>{% block title %}Award Nomination{% endblock %}</title>
 </head>
 <body>
     <nav>
@@ -17,7 +17,7 @@
                     <li><a href="{{ url_for('user_dashboard') }}">Dashboard</a></li>
                 {% endif %}
                 {% if session.get('role') == 'Admin' %}
-                    <li><a href="{{ url_for('category') }}">Categories</a></li>
+                    <li><a href="{{ url_for('category_dashboard') }}">Categories</a></li>
                 {% endif %}
                 <li><a href="{{ url_for('logout') }}">Logout</a></li>
             {% else %}

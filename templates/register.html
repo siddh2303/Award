@@ -31,10 +31,11 @@
                 <input type="email" name="email" required>
             </div>
             <div>
-                <label for="role">Role</label>
-                <select name="role" required>
-                    <option value="User">User</option>
-                    <option value="Admin">Admin</option>
+                <label for="access_level">Access Level</label>
+                <select name="access_level" required>
+                    <option value="full_access">Admin</option>
+                    <option value="view_only">View Only</option>
+                    <option value="reviewer">Reviewer</option>
                 </select>
             </div>
             <button type="submit">Register</button>

@@ -11,7 +11,7 @@
 <body>
     {% block content %}
     <div class="container">
-        <h2>User Dashboard</h2>
+        <h2>Welcome {{ session.username | capitalize}}</h2>
 
         <!-- Conditional rendering of the "Add Nomination" link -->
         {% if user.access_level == 'full_access' %}

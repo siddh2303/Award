@@ -10,11 +10,12 @@
 <body>
     {% block content %}
 <div class="container">
-    <h1>Admin Dashboard</h1>
+    <h1>Welcome {{ session.username | capitalize}}</h1>
+    <h2>Admin Dashboard</h2>
 
     <!-- Award Nomination Section -->
     <section id="award-nomination">
-        <h2>Award Nominations</h2>
+        <h3>Award Nominations</h3>
         <a href="{{ url_for('nomination_dashboard') }}" class="button">Nomination Dashboard</a>
         <a href="{{ url_for('category_dashboard') }}" class="button">Category Dashboard</a>
     </section>
@@ -22,8 +23,8 @@
 
     <!-- User Management Section -->
     <section id="user-management">
-        <h2>User Management</h2>
-        <a href="{{ url_for('register') }}">Register Self</a>
+        <h3>User Management</h3>
+        <a href="{{ url_for('register') }}">Create a New User</a>
         
         <h3>Assign Access</h3>
         <table border="1">
@@ -36,20 +37,33 @@
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.access_level }}</td>
-                    <td>
-                        <form method="POST" action="{{ url_for('update_access', user_id=user.id) }}">
-                            <select name="access_level">
-                                <option value="full_access" {% if user.access_level == 'full_access' %}selected{% endif %}>Full Access</option>
-                                <option value="view_only" {% if user.access_level == 'view_only' %}selected{% endif %}>View Only</option>
-                                <option value="reviewer" {% if user.access_level == 'reviewer' %}selected{% endif %}>Reviewer</option>
-                            </select>
-                            <button type="submit">Update</button>
-                        </form>
-                    </td>
-                </tr>
+                    {% if user.username != 'admin' %}
+                        <tr>
+                            <td>{{ user.username | capitalize }}</td>
+                            <td>
+                                {% if user.access_level == 'full_access' %}
+                                    Admin
+
+                                {% elif user.access_level == 'view_only' %}
+                                    View Only
+
+                                {% elif user.access_level == 'reviewer' %}
+                                    Reviewer
+
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ url_for('update_access', user_id=user.id) }}">
+                                    <select name="access_level">
+                                        <option value="full_access" {% if user.access_level == 'full_access' %}selected{% endif %}>Full Access</option>
+                                        <option value="view_only" {% if user.access_level == 'view_only' %}selected{% endif %}>View Only</option>
+                                        <option value="reviewer" {% if user.access_level == 'reviewer' %}selected{% endif %}>Reviewer</option>
+                                    </select>
+                                    <button type="submit">Update</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endif %}
                 {% endfor %}
             </tbody>
         </table>

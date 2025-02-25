@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 <!doctype html>
 <html lang="en">
@@ -13,10 +14,21 @@
         {{ form.hidden_tag() }}
         <p>
             {{ form.category_id.label }}<br>
-            {{ form.category_id() }}<br>
+            <select id="category" name="category_id" onchange="updateAwardsList()">
+                <option value="">Select Category</option>
+                {% for category_id, category_name in form.category_id.choices %}
+                    <option value="{{ category_id }}">{{ category_name }}</option>
+                {% endfor %}
+            </select>
             {% for error in form.category_id.errors %}
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
+        </p>
+        <p>
+            <label for="award">Award:</label><br>
+            <select id="award" name="award">
+                <option value="">Select an Award</option>
+            </select>
         </p>
         <p>
             {{ form.nominee_name.label }}<br>
@@ -69,10 +81,34 @@
         <p>
             {{ form.status.label }}<br>
             {{ form.status(disabled=True) }}<br>
+            <input type="hidden" name="status" value="In-progress">
         </p>
         <p>{{ form.submit() }}</p>
     </form>
     <a href="{{ url_for('user_dashboard') }}">Back to Dashboard</a>
+
+    <script>
+        function updateAwardsList() {
+            var categoryId = document.getElementById('category').value;
+            var awardSelect = document.getElementById('award');
+            awardSelect.innerHTML = '<option value="">Select an Award</option>'; // Clear previous options
+
+
+            if (categoryId) {
+                fetch(`/get_awards/${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(award => {
+                            var option = document.createElement('option');
+                            option.value = award.name;
+                            option.textContent = award.name;
+                            awardSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching awards:', error));
+            }
+        }
+    </script>
     {% endblock %}
 </body>
 </html>

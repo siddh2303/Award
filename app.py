@@ -1,10 +1,10 @@
 
 # Existing imports and configurations
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from models import db, User, Category, Nomination
+from models import db, User, Category, Nomination, QuarterlyAward, AnnuallyAward
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, DateField, TextAreaField, SelectField, SubmitField
 
@@ -81,18 +81,15 @@ def register():
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
         email = request.form['email']
-        role = request.form['role']  # 'User' or 'Admin' roles
+        role = 'User'
         gid = request.form['gid']
-
-        if role not in ['User', 'Admin']:
-            flash('Invalid role specified', 'danger')
-            return redirect(url_for('register'))
+        access_level = request.form['access_level']
         
         if not gid.isdigit() or len(gid) != 6:
             flash('GID must be a 6-digit number', 'danger')
             return redirect(url_for('register'))
 
-        user = User(username=username, password=password, email=email, role=role,gid=gid)
+        user = User(username=username, password=password, email=email, role=role,gid=gid,access_level=access_level)
         db.session.add(user)
         db.session.commit()
         flash(f'{role} registered successfully', 'success')
@@ -114,10 +111,9 @@ def login():
             session['username'] = username
             session['email']=user.email
             session['logged_in'] = True
-
-            if user.role == 'Admin':
+            if session['access_level'] == 'full_access':
                 return redirect(url_for('admin_dashboard'))
-            elif user.role == 'User':
+            elif session['access_level'] != 'full_access':
                 return redirect(url_for('user_dashboard'))
         else:
             flash('Invalid credentials', 'danger')
@@ -158,7 +154,7 @@ def edit_nomination(nomination_id):
 @login_required
 
 def admin_dashboard():
-    if 'user_id' not in session or session.get('role') != 'Admin':
+    if 'user_id' not in session or session['access_level'] != 'full_access':
         return redirect(url_for('login'))
     users=User.query.all()
     categories = Category.query.all()
@@ -181,9 +177,7 @@ def user_dashboard():
         return redirect(url_for('login'))
     categories = Category.query.all()
     user = User.query.filter_by(gid=session['gid']).first()
-    print(user)
     nominations = Nomination.query.filter_by(nominated_by_email=session['email']).all()
-    print(nominations)
     return render_template('user_dashboard.html', categories=categories, nominations=nominations, user=user)
 @app.route('/update_access/<int:user_id>', methods=['POST'])
 def update_access(user_id):
@@ -214,10 +208,42 @@ def category():
         name = request.form['name']
         start_date = datetime.strptime(request.form['start_date'], '%Y-%m')
         end_date = datetime.strptime(request.form['end_date'], '%Y-%m')
-        type = request.form['type']
-        new_category = Category(name=name, start_date=start_date, end_date=end_date, type=type)
+        status=1
+        new_category = Category(name=name, start_date=start_date, end_date=end_date, status=status)
         db.session.add(new_category)
         db.session.commit()
+        diff_months = (end_date.year - start_date.year) * 12 + end_date.month - start_date.month
+
+
+        if diff_months == 3:
+            awards = [
+                "Core Value - Customer First",
+                "Core Value - Disciplined Execution",
+                "Core Value - Embrace Impossible Challenges",
+                "Core Value - Continuous Learning",
+                "Core Value - Serving Society",
+                "Best Project"
+            ]
+            for award_name in awards:
+                award = QuarterlyAward(name=award_name, category_id=category.id)
+                db.session.add(award)
+
+        elif diff_months == 12:
+            awards = [
+                "Exemplary Leadership",
+                "Business Champion",
+                "eI Rocks",
+                "Best Function/Non-Engineering Team member",
+                "Best Team",
+                "Power Trainees",
+                "Jack of the box Award",
+                "Hercules Award",
+                "Dronacharya Award",
+                "CSR Award"
+            ]
+            for award_name in awards:
+                award = AnnuallyAward(name=award_name, category_id=category.id)
+                db.session.add(award)
         flash('Category added successfully', 'success')
         return redirect(url_for('admin_dashboard'))
     return render_template('category.html')
@@ -232,8 +258,38 @@ def edit_category(category_id):
         end_date_str = request.form['end_date']
 
         try:
-            category.start_date = datetime.strptime(start_date_str, '%Y-%m').date()
-            category.end_date = datetime.strptime(end_date_str, '%Y-%m').date()
+            category.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            category.end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            diff_months = (category.end_date.year - category.start_date.year) * 12 + category.end_date.month+1 - category.start_date.month
+            if diff_months == 3:
+                awards = [
+                    "Core Value - Customer First",
+                    "Core Value - Disciplined Execution",
+                    "Core Value - Embrace Impossible Challenges",
+                    "Core Value - Continuous Learning",
+                    "Core Value - Serving Society",
+                    "Best Project"
+                ]
+                for award_name in awards:
+                    award = QuarterlyAward(name=award_name, category_id=category.id)
+                    db.session.add(award)
+
+            elif diff_months == 12:
+                awards = [
+                    "Exemplary Leadership",
+                    "Business Champion",
+                    "eI Rocks",
+                    "Best Function/Non-Engineering Team member",
+                    "Best Team",
+                    "Power Trainees",
+                    "Jack of the box Award",
+                    "Hercules Award",
+                    "Dronacharya Award",
+                    "CSR Award"
+                ]
+                for award_name in awards:
+                    award = AnnuallyAward(name=award_name, category_id=category.id)
+                    db.session.add(award)
             db.session.commit()
             flash('Category updated successfully', 'success')
             return redirect(url_for('view_categories'))
@@ -248,7 +304,6 @@ def edit_category(category_id):
 
 @app.route('/category/delete/<int:category_id>', methods=['GET','POST'])
 def delete_category(category_id):
-    print(f"Attempting to delete category with ID: {category_id}")  # Debug print
 
     category = Category.query.get_or_404(category_id)
     try:
@@ -256,12 +311,10 @@ def delete_category(category_id):
 
         db.session.commit()
         flash('Category marked as deleted successfully', 'success')
-        print(f"Category with ID {category_id} marked as deleted successfully.")  # Debug print
 
     except Exception as e:
         db.session.rollback()
         flash(f'Error marking category as deleted: {str(e)}', 'error')
-        print(f"Error occurred while marking category with ID {category_id} as deleted: {str(e)}")  # Debug print
 
     return redirect(url_for('view_categories'))
 
@@ -273,7 +326,7 @@ def new_nomination():
     if 'user_id' not in session or session.get('access_level') != 'full_access':
         return redirect(url_for('login'))
     form = NominationForm()
-    form.category_id.choices = [(category.id, category.name) for category in Category.query.all()]
+    form.category_id.choices = [(category.id, f"{category.name} ({category.start_date.strftime('%d-%B-%Y')} - {category.end_date.strftime('%d-%B-%Y')})") for category in Category.query.filter_by(status=1).all()]
     form.nominated_by_name.data = session['username']
     form.nominated_by_global_id.data = session['gid']
     form.nominated_by_email.data = session['email']
@@ -287,12 +340,27 @@ def new_nomination():
             nominated_by_global_id=form.nominated_by_global_id.data, 
             nominated_by_email=form.nominated_by_email.data, 
             comments=form.comments.data, 
-            status='Submitted'
+            status='Submitted',
+            award_name= request.form.get('award')
 
         )
         db.session.add(nomination)
+        category = Category.query.get_or_404(form.category_id.data)
+        if category:
+            category.start_date = datetime.strptime(str(category.start_date), "%Y-%m-%d %H:%M:%S").date()
+            category.end_date = datetime.strptime(str(category.end_date), "%Y-%m-%d %H:%M:%S").date()
+            diff_months = (category.end_date.year - category.start_date.year) * 12 + category.end_date.month+1 - category.start_date.month
+            if diff_months == 3:
+                award = QuarterlyAward.query.filter_by(name=request.form.get('award'), category_id=form.category_id.data).first()
+            elif diff_months == 12:
+                award = AnnuallyAward.query.filter_by(name=request.form.get('award'), category_id=form.category_id.data).first()
+
+            if award:
+                award.is_available = False
+
+                db.session.add(award)
         db.session.commit()
-        return redirect(url_for('user_dashboard'))
+        return redirect(url_for('nomination_dashboard'))
     return render_template('new_nomination.html', form=form)
 
 @app.route('/update_nomination/<int:nomination_id>', methods=['POST'])
@@ -328,5 +396,27 @@ def view_nominees():
     user = User.query.filter_by(gid=session['gid']).first()
     return render_template('view_nominees.html', nominees=nominees, user= user)
 
+@app.route('/get_awards/<int:category_id>', methods=['GET'])
+def get_awards(category_id):
+    try:
+        # Query both QuarterlyAward and AnnuallyAward where is_available is True
+
+        quarterly_awards = QuarterlyAward.query.filter_by(category_id=category_id, is_available=True).all()
+        annually_awards = AnnuallyAward.query.filter_by(category_id=category_id, is_available=True).all()
+        
+        # Combine the results and prepare the response
+
+        awards = [
+            {'id': award.id, 'name': award.name} 
+            for award in quarterly_awards + annually_awards
+
+        ]
+        
+        return jsonify(awards)
+    except Exception as e:
+        # Handle exceptions and return an error message
+
+        return jsonify({'error': str(e)}), 500
+    
 if __name__ == '__main__':
     app.run(debug=True)

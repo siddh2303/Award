@@ -64,7 +64,7 @@
                     <th>Nominated By</th>
                     <th>Comments</th>
                     <th>Status</th>
-                    <th>Category</th>
+                    <th>Award Name</th>
                     {% if user.access_level == 'full_access' or user.access_level == 'reviewer' %}
                         <th>Actions</th>
                     {% endif %}
@@ -79,7 +79,7 @@
                         <td>{{ nominee.nominated_by_name }}</td>
                         <td>{{ nominee.comments }}</td>
                         <td>{{ nominee.status }}</td>
-                        <td>{{ nominee.category.name }}</td>
+                        <td>{{ nominee.award_name }}</td>
                         {% if user.access_level == 'full_access' or user.access_level == 'reviewer'%}                             
                             <td>
                                 <form method="POST" action="{{ url_for('update_nomination_status', nomination_id=nominee.id) }}" style="display:inline;">
