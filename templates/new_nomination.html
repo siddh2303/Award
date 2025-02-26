@@ -5,7 +5,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Nomination</title>
+    <title>{% block title %}New Nomination{% endblock %}</title>
+
 </head>
 <body>
     {% block content %}
@@ -75,6 +76,13 @@
             {% endfor %}
         </p>
         <p>
+            <label for="team_member">Team Member:</label><br>
+            {{ form.team_member_id() }}
+            {% for error in form.team_member_id.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
             {{ form.comments.label }}<br>
             {{ form.comments() }}<br>
         </p>
@@ -85,7 +93,6 @@
         </p>
         <p>{{ form.submit() }}</p>
     </form>
-    <a href="{{ url_for('user_dashboard') }}">Back to Dashboard</a>
 
     <script>
         function updateAwardsList() {

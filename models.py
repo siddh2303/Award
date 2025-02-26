@@ -50,4 +50,12 @@ class Nomination(db.Model):
     status = db.Column(db.String(50), nullable=False, default='In-progress')  # In-progress, Submitted, Rejected, Send-Back
     submission_date = db.Column(db.DateTime, default=datetime.now())
     award_name = db.Column(db.String(150), nullable=False)
+    team_member_name = db.Column(db.String(100), nullable=False)
+    
+
+class TeamMember(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    gid = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
     

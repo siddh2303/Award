@@ -5,10 +5,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nomination Dashboard</title>
+    <title>{% block title %}Nomination Dashboard{% endblock %}</title>
     <style>
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -34,7 +34,10 @@
     <div class="container">
         <h1>Nomination Dashboard</h1>
         {% if session.access_level == 'full_access' %}
-        <a href="{{ url_for('new_nomination') }}" class="button">Award Nomination</a>
+        <a href="{{ url_for('new_nomination') }}" class="button">Add Nomination</a>
+        <a href="{{ url_for('approval_page') }}" class="button">Approval Page</a>
+        <a href="{{ url_for('add_team_member') }}" class="button">Add Team Member</a>
+        <a href="{{ url_for('view_team_members') }}" class="button">View Team Members</a>
         {% endif %}
         <a href="{{ url_for('view_nominees') }}" class="button">View Nominees</a>
         

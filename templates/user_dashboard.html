@@ -14,7 +14,7 @@
         <h2>Welcome {{ session.username | capitalize}}</h2>
 
         <!-- Conditional rendering of the "Add Nomination" link -->
-        {% if user.access_level == 'full_access' %}
+        {% if user.access_level == 'full_access' or user.access_level == 'reviewer' %}
             <a href="{{ url_for('new_nomination') }}">Add Nomination</a>
         {% endif %}
 
@@ -27,7 +27,7 @@
                     <th>Category</th>
                     <th>Status</th>
                     <th>Comments</th>
-                    {% if user.access_level == 'full_access' and nominations|selectattr('status', 'in', ['In-Progress', 'Send-Back']) %}
+                    {% if (user.access_level == 'full_access' or user.access_level == 'reviewer') and nominations|selectattr('status', 'in', ['In-Progress', 'Send-Back']) %}
                         <th>Actions</th>
                     {% endif %}
                 </tr>
@@ -37,10 +37,10 @@
                     <tr>
                         <td>{{ nomination.nominee_global_id }}</td>
                         <td>{{ nomination.nominee_name }}</td>
-                        <td>{{ nomination.category.name }}</td>
+                        <td>{{ nomination.award_name }}</td>
                         <td>{{ nomination.status }}</td>
                         <td>{{ nomination.comments }}</td>
-                        {% if user.access_level == 'full_access' and nomination.status in ['In-Progress', 'Send-Back'] %}
+                        {% if (user.access_level == 'full_access' or user.access_level == 'reviewer') and nomination.status in ['In-Progress', 'Send-Back'] %}
                             <td>
                                 <a href="{{ url_for('edit_nomination', nomination_id=nomination.id) }}">Edit</a>
                             </td>

@@ -2,13 +2,50 @@
 {% extends "base.html" %}
 <!DOCTYPE html>
 <html lang="en">
+    {% block content %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Nomination</title>
+    <title>{% block title %}Edit Nomination{% endblock %}</title>
+    <script>
+        // Function to populate award list based on provided category_id
+
+        function loadAwards(categoryId, selectedAwardName) {
+            var awardSelect = document.getElementById('award_id');
+            awardSelect.innerHTML = '<option value="">Select an Award</option>'; // Clear previous options
+
+
+            if (categoryId) {
+                fetch(`/get_Allawards/${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(award => {
+                            var option = document.createElement('option');
+                            option.value = award.name;
+                            option.textContent = award.name;
+                            if (award.name === selectedAwardName) {
+                                option.selected = true;
+                            }
+                            awardSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching awards:', error));
+            }
+        }
+
+        // Automatically load awards on page load using nomination.category_id and select the assigned award
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var categoryId = "{{ nomination.category_id }}"; // Ensure this ID is correct and available
+
+            var selectedAwardName = "{{ nomination.award_name }}"; // Get the pre-assigned award name
+
+            loadAwards(categoryId, selectedAwardName);
+        });
+    </script>
 </head>
 <body>
-    {% block content %}
+    
     <div class="container">
         <h2>Edit Nomination</h2>
         <form method="POST" action="{{ url_for('edit_nomination', nomination_id=nomination.id) }}">
@@ -25,11 +62,28 @@
                 <input type="email" name="nominee_email" value="{{ nomination.nominee_email }}" required>
             </div>
             <div>
-                <label for="category_id">Category</label>
-                <select name="category_id" required>
+                <label for="team_member_name">Team Member Name:</label>
+                <select name="team_member_name" required>
+                    {% for member in team_members %}
+                        <option value="{{ member.name }}" {% if member.name == nomination.team_member_name %}selected{% endif %}>
+                            {{ member.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="category_id">Award Category</label>
+                <select name="category_id" disabled>
                     {% for category in categories %}
                         <option value="{{ category.id }}" {% if category.id == nomination.category_id %}selected{% endif %}>{{ category.name }}</option>
                     {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="award_id">Award Name</label>
+                <select id="award_id" name="award_id" required>
+                    <option value="">Select an Award</option>
+                    <!-- Options will be dynamically populated based on the nomination's category -->
                 </select>
             </div>
             <div>
@@ -39,6 +93,7 @@
             <button type="submit">Update Nomination</button>
         </form>
     </div>
-    {% endblock %}
+    
 </body>
+{% endblock %}
 </html>

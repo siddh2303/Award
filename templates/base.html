@@ -13,10 +13,13 @@
             {% if 'user_id' in session %}
                 {% if session.get('role') == 'Admin' %}
                     <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                {% endif %}
+                {% if session.get('access_level') == 'full_access' %}
+                    <li><a href="{{ url_for('nomination_dashboard') }}">Nomination Dashboard</a></li>
                 {% else %}
                     <li><a href="{{ url_for('user_dashboard') }}">Dashboard</a></li>
                 {% endif %}
-                {% if session.get('role') == 'Admin' %}
+                {% if session.get('role') == 'Admin' or session.get('access_level') == 'full_access' %}
                     <li><a href="{{ url_for('category_dashboard') }}">Categories</a></li>
                 {% endif %}
                 <li><a href="{{ url_for('logout') }}">Logout</a></li>
