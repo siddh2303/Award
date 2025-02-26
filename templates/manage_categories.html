@@ -1,0 +1,79 @@
+
+{% extends "base.html" %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Manage Categories{% endblock %}</title>
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        a.button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Categories</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Category Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Extended Until</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td>{{ category.name }}</td>
+                    <td>{{ category.start_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ category.end_date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% set extension_days = category.extension_days if category.extension_days is not none else 0 %}
+                        {% if extension_days == 0 %}
+                            -
+                        {% else %}
+                            {{ (category.end_date + timedelta(days=extension_days)).strftime('%Y-%m-%d') }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('extend_deadline', category_id=category.id) }}" class="button">Extend Deadline</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+{% endblock %}

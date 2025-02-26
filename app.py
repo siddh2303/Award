@@ -9,7 +9,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, DateField, TextAreaField, SelectField, SubmitField
 
 from wtforms.validators import DataRequired, Email, Length
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from functools import wraps
 
@@ -64,7 +64,6 @@ def login_required(f):
 
 
 @app.before_request
-
 def create_tables():
     db.create_all()
 
@@ -133,6 +132,15 @@ def logout():
 def view_categories():
     categories = Category.query.filter_by(status=1).all()
     return render_template('view_categories.html', categories=categories)
+
+@app.route('/manage_categories')
+@login_required
+
+def manage_categories():
+    if 'user_id' not in session or session.get('access_level') != 'full_access':
+        return redirect(url_for('login'))
+    categories = Category.query.filter_by(status=1).all()
+    return render_template('manage_categories.html', categories=categories,timedelta=timedelta)
 
 @app.route('/edit_nomination/<int:nomination_id>', methods=['GET', 'POST'])
 def edit_nomination(nomination_id):
@@ -328,13 +336,63 @@ def delete_category(category_id):
 
     return redirect(url_for('view_categories'))
 
-
-@app.route('/nominations/new', methods=['GET', 'POST'])
-@login_required
-
-def new_nomination():
+@app.route('/extend_deadline/<int:category_id>', methods=['GET', 'POST'])
+def extend_deadline(category_id):
     if 'user_id' not in session or session.get('access_level') != 'full_access':
         return redirect(url_for('login'))
+    category = Category.query.get_or_404(category_id)
+    if request.method == 'POST':
+        try:
+            new_end_date_str = request.form['new_end_date']
+            new_end_date = datetime.strptime(new_end_date_str, '%Y-%m-%d').date()
+
+            if new_end_date <= category.end_date.date():
+                flash('The new end date must be after the current end date.', 'danger')
+            else:
+                # Calculate the extension in days
+
+                extension_days = (new_end_date - category.end_date.date()).days
+
+                category.extension_days += extension_days
+
+
+                db.session.commit()
+                flash(f'Deadline extended to {new_end_date_str}.', 'success')
+        except ValueError:
+            flash('Invalid number of days.', 'danger')
+        return redirect(url_for('category_dashboard'))
+
+    return render_template('extend_deadline.html', category=category)
+
+
+@app.route('/select_category', methods=['GET', 'POST'])
+def select_category():
+    if 'user_id' not in session or session.get('access_level') == 'view_only':
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        category_id = request.form['category_id']
+        category = Category.query.get(category_id)
+        if category.is_deadline_extended():
+            return redirect(url_for('new_nomination', category_id=category_id))
+        else:
+            flash('The deadline for this category has passed.', 'danger')
+            
+            return redirect(url_for('select_category'))
+    
+    categories = Category.query.all()
+    return render_template('select_category.html', categories=categories)
+
+@app.route('/nominations/new/<int:category_id>', methods=['GET', 'POST'])
+@login_required
+
+def new_nomination(category_id):
+    if 'user_id' not in session or session.get('access_level') == 'view_only':
+        return redirect(url_for('login'))
+    cat = Category.query.get_or_404(category_id)
+    if not cat.is_deadline_extended():
+        flash('The deadline for this category has passed.', 'danger')
+        return redirect(url_for('select_category'))
     team_members = TeamMember.query.all()
     form = NominationForm()
     form.category_id.choices = [(category.id, f"{category.name} ({category.start_date.strftime('%d-%B-%Y')} - {category.end_date.strftime('%d-%B-%Y')})") for category in Category.query.filter_by(status=1).all()]
@@ -385,7 +443,7 @@ def new_nomination():
 @login_required
 
 def update_nomination_status(nomination_id):
-    if 'user_id' not in session or session.get('role') != 'Admin':
+    if 'user_id' not in session or session.get('access_level') == 'view_only':
         return redirect(url_for('login'))
     
     nomination = Nomination.query.get_or_404(nomination_id)

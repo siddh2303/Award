@@ -39,6 +39,7 @@
         <div class="buttons">
             {% if session.access_level == 'full_access' %}
                 <a href="{{ url_for('category') }}" class="button">Create a New Category</a>
+                <a href="{{ url_for('manage_categories') }}" class="button">Manage Categories</a>
             {% endif %}
             <a href="{{ url_for('view_categories') }}" class="button">View Categories</a>
         </div>

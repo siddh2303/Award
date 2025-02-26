@@ -34,7 +34,7 @@
     <div class="container">
         <h1>Nomination Dashboard</h1>
         {% if session.access_level == 'full_access' %}
-        <a href="{{ url_for('new_nomination') }}" class="button">Add Nomination</a>
+        <a href="{{ url_for('select_category') }}" class="button">Add Nomination</a>
         <a href="{{ url_for('approval_page') }}" class="button">Approval Page</a>
         <a href="{{ url_for('add_team_member') }}" class="button">Add Team Member</a>
         <a href="{{ url_for('view_team_members') }}" class="button">View Team Members</a>

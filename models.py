@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 
 db = SQLAlchemy()
 
@@ -20,6 +20,12 @@ class Category(db.Model):
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.Integer, nullable=False, default=1)
+    extension_days = db.Column(db.Integer, default=0, nullable=False)
+
+    def is_deadline_extended(self):
+        if self.extension_days is None:
+            self.extension_days = 0
+        return self.end_date + timedelta(days=self.extension_days) > datetime.utcnow()
 
 class QuarterlyAward(db.Model):
     __tablename__ = 'quarterly_awards'
