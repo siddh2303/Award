@@ -113,8 +113,8 @@ def login():
             session['logged_in'] = True
             if session['access_level'] == 'full_access':
                 return redirect(url_for('admin_dashboard'))
-            elif session['access_level'] != 'full_access':
-                return redirect(url_for('user_dashboard'))
+            else:
+                return redirect(url_for('nomination_dashboard'))
         else:
             flash('Invalid credentials', 'danger')
     return render_template('login.html')
@@ -128,14 +128,12 @@ def logout():
 
 @app.route('/view_categories')
 @login_required
-
 def view_categories():
     categories = Category.query.filter_by(status=1).all()
     return render_template('view_categories.html', categories=categories)
 
 @app.route('/manage_categories')
 @login_required
-
 def manage_categories():
     if 'user_id' not in session or session.get('access_level') != 'full_access':
         return redirect(url_for('login'))
@@ -143,6 +141,7 @@ def manage_categories():
     return render_template('manage_categories.html', categories=categories,timedelta=timedelta)
 
 @app.route('/edit_nomination/<int:nomination_id>', methods=['GET', 'POST'])
+@login_required
 def edit_nomination(nomination_id):
     nomination = Nomination.query.get_or_404(nomination_id)
     if request.method == 'POST':
@@ -198,7 +197,6 @@ def edit_nomination(nomination_id):
 
 @app.route('/admin')
 @login_required
-
 def admin_dashboard():
     if 'user_id' not in session or session['access_level'] != 'full_access':
         return redirect(url_for('login'))
@@ -207,17 +205,20 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', categories=categories,users=users)
 
 @app.route('/nomination_dashboard')
+@login_required
 def nomination_dashboard():
     return render_template('nomination_dashboard.html')
 
 @app.route('/category_dashboard')
+@login_required
 def category_dashboard():
+    if 'user_id' not in session or session['access_level'] != 'full_access':
+        return redirect(url_for('login'))
     return render_template('category_dashboard.html')
 
 
 @app.route('/user')
 @login_required
-
 def user_dashboard():
     if 'user_id' not in session or session.get('role') != 'User':
         return redirect(url_for('login'))
@@ -225,7 +226,9 @@ def user_dashboard():
     user = User.query.filter_by(gid=session['gid']).first()
     nominations = Nomination.query.filter_by(nominated_by_email=session['email']).all()
     return render_template('user_dashboard.html', categories=categories, nominations=nominations, user=user)
+
 @app.route('/update_access/<int:user_id>', methods=['POST'])
+@login_required
 def update_access(user_id):
     user = User.query.get_or_404(user_id)
     new_access_level = request.form['access_level']
@@ -239,14 +242,20 @@ def update_access(user_id):
     user.access_level = new_access_level
 
     db.session.commit()
-    
-    flash(f'Access level for user {user.username} updated to {new_access_level}.', 'success')
+    if new_access_level == 'full_access':
+        message = f"Access level for user {user.username.capitalize()} updated to Admin Rights."
+    elif new_access_level == 'view_only':
+        message = f"Access level for user {user.username.capitalize()} updated to View Only Rights."
+    elif new_access_level == 'reviewer':
+        message = f"Access level for user {user.username.capitalize()} updated to Reviewer Rights."
+    else:
+        message = f"Access level for user {user.username.capitalize()} updated to {new_access_level}."
+    flash(message, 'success')
     return redirect(url_for('admin_dashboard'))
 
 
 @app.route('/category', methods=['GET', 'POST'])
 @login_required
-
 def category():
     if 'user_id' not in session or session.get('access_level') != 'full_access':
         return redirect(url_for('login'))
@@ -298,6 +307,7 @@ def category():
 
 
 @app.route('/category/edit/<int:category_id>', methods=['GET', 'POST'])
+@login_required
 def edit_category(category_id):
     category = Category.query.get_or_404(category_id)
     if request.method == 'POST':
@@ -321,6 +331,7 @@ def edit_category(category_id):
     return render_template('edit_category.html', category=category)
 
 @app.route('/category/delete/<int:category_id>', methods=['GET','POST'])
+@login_required
 def delete_category(category_id):
 
     category = Category.query.get_or_404(category_id)
@@ -337,6 +348,7 @@ def delete_category(category_id):
     return redirect(url_for('view_categories'))
 
 @app.route('/extend_deadline/<int:category_id>', methods=['GET', 'POST'])
+@login_required
 def extend_deadline(category_id):
     if 'user_id' not in session or session.get('access_level') != 'full_access':
         return redirect(url_for('login'))
@@ -366,6 +378,7 @@ def extend_deadline(category_id):
 
 
 @app.route('/select_category', methods=['GET', 'POST'])
+@login_required
 def select_category():
     if 'user_id' not in session or session.get('access_level') == 'view_only':
         return redirect(url_for('login'))
@@ -385,7 +398,6 @@ def select_category():
 
 @app.route('/nominations/new/<int:category_id>', methods=['GET', 'POST'])
 @login_required
-
 def new_nomination(category_id):
     if 'user_id' not in session or session.get('access_level') == 'view_only':
         return redirect(url_for('login'))
@@ -441,7 +453,6 @@ def new_nomination(category_id):
 
 @app.route('/update_nomination/<int:nomination_id>', methods=['POST'])
 @login_required
-
 def update_nomination_status(nomination_id):
     if 'user_id' not in session or session.get('access_level') == 'view_only':
         return redirect(url_for('login'))
@@ -467,10 +478,7 @@ def update_nomination_status(nomination_id):
     
 @app.route('/view_nominees')
 @login_required
-
 def view_nominees():
-    if 'user_id' not in session or session.get('access_level') != 'full_access':
-        return redirect(url_for('login'))
     nominees = Nomination.query.all()
     nominee = Nomination.query.get(session['username'])
     user = User.query.filter_by(gid=session['gid']).first()
@@ -478,7 +486,6 @@ def view_nominees():
 
 @app.route('/approval_page')
 @login_required
-
 def approval_page():
     if 'user_id' not in session or session.get('access_level') != 'full_access':
         return redirect(url_for('login'))
@@ -489,8 +496,9 @@ def approval_page():
 
 @app.route('/add_team_member', methods=['GET', 'POST'])
 @login_required
-
 def add_team_member():
+    if 'user_id' not in session or session.get('access_level') != 'full_access':
+        return redirect(url_for('login'))
     if request.method == 'POST':
         name = request.form.get('name')
         gid = request.form.get('gid')
@@ -508,7 +516,6 @@ def add_team_member():
 
 @app.route('/view_team_members')
 @login_required
-
 def view_team_members():
     team_members = TeamMember.query.all()
     return render_template('view_team_members.html', team_members=team_members)
