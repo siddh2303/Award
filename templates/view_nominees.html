@@ -8,10 +8,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}View Nominees{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
         table {
-            width: 100%;
+            width: auto;
+            table-layout: auto;
             border-collapse: collapse;
+        }
+        .container{
+            width: auto;
+            padding: 20px;
+            overflow-x: auto;
+            max-width: 100%;
         }
         th, td {
             padding: 8px;
@@ -21,29 +30,7 @@
         th {
             background-color: #f2f2f2;
         }
-        button {
-            padding: 6px 12px;
-            margin: 2px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .button.reject {
-            background-color: #f44336;
-        }
-        .button.reject:hover {
-            background-color: #e53935;
-        }
-        .button.send-back {
-            background-color: #ff9800;
-        }
-        .button.send-back:hover {
-            background-color: #fb8c00;
-        }
+        
         form {
             display: inline;
         }
@@ -51,8 +38,11 @@
     </style>
 </head>
 <body>
+    <button class="btn btn-secondary back-button" onclick="history.back()">Back</button>
     
     <div class="container">
+        <a href="{{ url_for('new_nomination') }}" class="btn btn-success">Add Nomination</a><br><br>
+        {% if nominees %}
         <h2>View Nominees</h2>
         <table border="1">
             <thead>
@@ -63,9 +53,10 @@
                     <th>Nominated By</th>
                     <th>Comments</th>
                     <th>Status</th>
+                    <th>Category Name</th>
                     <th>Award Name</th>
-                    <th>Team Member Name</th>
-                    {% if (user.access_level == 'full_access' or user.access_level == 'reviewer') and nominee|selectattr('status', 'in', ['In-Progress', 'Send-Back']) or session['username'] == nominee.nominated_by_name %}
+                    <th>Team Name</th>
+                    {% if nominees|selectattr('nominated_by_email', 'equalto', 'session["email"]') and nominees|selectattr('status', 'in', ['In-Progress', 'Send-Back']) %}
                         <th>Actions</th>
                     {% endif %}
                 </tr>
@@ -79,17 +70,38 @@
                         <td>{{ nominee.nominated_by_name | title }}</td>
                         <td>{{ nominee.comments }}</td>
                         <td>{{ nominee.status }}</td>
+                        <td>{{ nominee.category.name }}</td>
                         <td>{{ nominee.award_name }}</td>
                         <td>{{ nominee.team_member_name }}</td>
-                        {% if (user.access_level == 'full_access' or user.access_level == 'reviewer') and nominee.status in ['In-Progress', 'Send-Back'] and session['username'] == nominee.nominated_by_name %}
-                            <td>
-                                <a href="{{ url_for('edit_nomination', nomination_id=nominee.id) }}">Edit</a>
-                            </td>
+                        <td>
+                        {% if session['email'] == nominee.nominated_by_email and nominee.status in ['In-Progress', 'Send-Back']%}
+                            
+                                <a href="{{ url_for('edit_nomination', nomination_id=nominee.id) }}" class="btn btn-primary">Edit</a>
+                            
                         {% endif %}
+                        {% if 'full_access' in role_names_list or 'reviewer' in role_names_list %}
+                                <form method="POST" action="{{ url_for('update_nomination_status', nomination_id=nominee.id) }}">
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="btn btn-success">Approve</button>
+                                </form>&nbsp;
+                                <form method="POST" action="{{ url_for('update_nomination_status', nomination_id=nominee.id) }}">
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-danger">Reject</button>
+                                </form>&nbsp;
+                                <form method="POST" action="{{ url_for('update_nomination_status', nomination_id=nominee.id) }}">
+                                    <input type="hidden" name="action" value="send_back">
+                                    <button type="submit" class="btn btn-secondary">Send Back</button>
+                                </form>
+                            
+                        {% endif %}
+                    </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+        {% else %}
+            <h5 class="fw-bold fs-5">No Nominations Yet</h5>
+        {% endif %}
     </div>
     
 </body>

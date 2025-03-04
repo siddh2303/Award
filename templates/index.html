@@ -1,21 +1,41 @@
-
 {% extends "base.html" %}
-
-
 
 <!DOCTYPE html>
 <html lang="en">
+    {% block content %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Home{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 50px;
+            text-align: center;
+        }
+        .welcome-message {
+            margin-bottom: 20px;
+        }
+        .btn-custom {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    {% block content %}
+
     <div class="container">
-        <h2>Welcome to the Award Nomination System</h2>
-        <p>Please <a href="{{ url_for('login') }}">login</a> or <a href="{{ url_for('register') }}">register</a> to continue.</p>
+        <div class="jumbotron">
+            <h2 class="welcome-message">Welcome to IA BMS</h2>
+            <a href="{{ url_for('login') }}" class="btn btn-primary btn-custom">Login</a>
+        </div>
     </div>
-    {% endblock %}
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
+{% endblock %}
 </html>

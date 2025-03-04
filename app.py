@@ -1,21 +1,18 @@
-
-# Existing imports and configurations
-
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from models import db, User, Category, Nomination, QuarterlyAward, AnnuallyAward, TeamMember
+from models import db, User, Category, Nomination, QuarterlyAward, AnnuallyAward, TeamMember, UserRole, Role
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, DateField, TextAreaField, SelectField, SubmitField
 
 from wtforms.validators import DataRequired, Email, Length
 from datetime import datetime, timedelta
-
+import sqlite3
 from functools import wraps
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///C:\\Users\\164817\\Downloads\\Project Work\\Award\\awardDB.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///C:\\Users\\164817\\Downloads\\Project Work\\Award 2\\awardDB.db'
 app.config['SECRET_KEY'] = '09g8g6fg54hb3j4v34'
 db.init_app(app)
 
@@ -46,13 +43,11 @@ class NominationForm(FlaskForm):
     nominated_by_global_id = StringField('Nominated by Global ID', validators=[DataRequired()])
     nominated_by_email = StringField('Nominated by Email', validators=[DataRequired(), Email()])
     comments = TextAreaField('Citations (if any)')
-    status = SelectField('Status', choices=[('In-progress', 'In-progress'), 
-                                            ('Submitted', 'Submitted'),
-                                            ('Rejected', 'Rejected'), 
-                                            ('Send-back', 'Send-back')])
+    status = StringField('Status',default='In-progress' , validators=[DataRequired()])
     submit = SubmitField('Submit Nomination')
     team_member_id = SelectField('Team Member', coerce=int, validators=[DataRequired()])
     
+   
     
 def login_required(f):
     @wraps(f)
@@ -62,10 +57,52 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def not_full_access(f):
+    @wraps(f)
+    def dec_func(*args,**kwargs):
+        if 'full_access' not in session['access_level'] :
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return dec_func
+
+def check_assign_access(f):
+    @wraps(f)
+    def dec_function(*args,**kwargs):
+        if 'assign_access' in session['access_level'] or 'full_access' in session['access_level']:
+            pass
+        else:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return dec_function
+
+def check_manage_user(f):
+    @wraps(f)
+    def deco_function(*args,**kwargs):
+        if 'manage_user' in session['access_level'] or 'full_access' in session['access_level']:
+            pass
+        else:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return deco_function
+
+def approver_access(f):
+    @wraps(f)
+    def deco_func(*args,**kwargs):
+        if 'reviewer' in session['access_level'] or 'full_access' in session['access_level']:
+            pass
+        else:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return deco_func
+
 
 @app.before_request
 def create_tables():
     db.create_all()
+    categories = Category.query.all()
+    for category in categories:
+        category.update_status()
+    db.session.commit()
 
 @app.route('/')
 def index():
@@ -74,47 +111,52 @@ def index():
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@check_manage_user
 def register():
-    if session.get('access_level') != 'full_access':
-        return redirect(url_for('login'))
     if request.method == 'POST':
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
         email = request.form['email']
         role = 'User'
         gid = request.form['gid']
-        access_level = request.form['access_level']
         
         if not gid.isdigit() or len(gid) != 6:
             flash('GID must be a 6-digit number', 'danger')
             return redirect(url_for('register'))
 
-        user = User(username=username, password=password, email=email, role=role,gid=gid,access_level=access_level)
+        user = User(username=username, password=password, email=email, role=role,gid=gid)
         db.session.add(user)
         db.session.commit()
+        new_user=User.query.filter_by(username=username).first()
+        new_user_role =UserRole(user_id=new_user.id,role_id=3,name='edit_only')
+        db.session.add(new_user_role)
+        db.session.commit()
         flash(f'{role} registered successfully', 'success')
-        return redirect(url_for('login'))
+        return redirect(url_for('admin_dashboard'))
     return render_template('register.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        gid = request.form['gid']
         password = request.form['password']
-        user = User.query.filter_by(username=username).first()
+        if gid == 'admin':
+            user = User.query.filter_by(username=gid).first()
+        else:
+            user = User.query.filter_by(gid=gid).first()
+       
         if user and check_password_hash(user.password, password):
+            role_names = db.session.query(UserRole.name).filter(UserRole.user_id == user.id).all()
+            role_names_list = [role.name for role in role_names]
             session['user_id'] = user.id
             session['gid']=user.gid
             session['role'] = user.role
-            session['access_level']=user.access_level
-            session['username'] = username
+            session['access_level']=role_names_list
+            session['username'] = user.username
             session['email']=user.email
             session['logged_in'] = True
-            if session['access_level'] == 'full_access':
-                return redirect(url_for('admin_dashboard'))
-            else:
-                return redirect(url_for('nomination_dashboard'))
+            return redirect(url_for('admin_dashboard'))
         else:
             flash('Invalid credentials', 'danger')
     return render_template('login.html')
@@ -124,153 +166,196 @@ def logout():
     session.pop('user_id', None)
     session.pop('role', None)
     session.pop('logged_in', None)
+    session.pop('gid',None)
+    session.pop('access_level',None)
+    session.pop('username',None)
+    session.pop('email',None)
     return redirect(url_for('login'))
 
-@app.route('/view_categories')
+@app.route('/nomination_duration')
 @login_required
-def view_categories():
-    categories = Category.query.filter_by(status=1).all()
-    return render_template('view_categories.html', categories=categories)
+def nomination_duration():
+    if 'full_access' in session['access_level']:
+        categories = Category.query.all()
+    else:
+        categories = Category.query.filter_by(status=1).all()
+    
+    return render_template('nomination_duration.html', categories=categories,timedelta=timedelta)
 
-@app.route('/manage_categories')
-@login_required
-def manage_categories():
-    if 'user_id' not in session or session.get('access_level') != 'full_access':
-        return redirect(url_for('login'))
-    categories = Category.query.filter_by(status=1).all()
-    return render_template('manage_categories.html', categories=categories,timedelta=timedelta)
+
+
+
 
 @app.route('/edit_nomination/<int:nomination_id>', methods=['GET', 'POST'])
 @login_required
 def edit_nomination(nomination_id):
     nomination = Nomination.query.get_or_404(nomination_id)
     if request.method == 'POST':
-        # Get form data
-
         new_award_name = request.form['award_id']
         team_member_name = request.form['team_member_name']
 
-        # Step 1: Update the previously selected award's is_available to True
-
-        if nomination.award_name:
-            previous_award_name = nomination.award_name
-
-            previous_award = QuarterlyAward.query.filter_by(name=previous_award_name).first()
-            if not previous_award:
-                previous_award = AnnuallyAward.query.filter_by(name=previous_award_name).first()
-            
-            if previous_award:
-                previous_award.is_available = True
-
-                db.session.add(previous_award)
-
-        # Step 2: Update the new selected award's is_available to False
-
-        new_award = QuarterlyAward.query.filter_by(name=new_award_name).first()
-        if not new_award:
-            new_award = AnnuallyAward.query.filter_by(name=new_award_name).first()
-
-        if new_award:
-            new_award.is_available = False
-
-            db.session.add(new_award)
-
-        # Step 3: Update the nomination
+        # Update nomination details without altering award availability
 
         nomination.nominee_name = request.form['nominee_name']
         nomination.nominee_global_id = request.form['nominee_global_id']
         nomination.nominee_email = request.form['nominee_email']
         nomination.comments = request.form['comments']
         nomination.award_name = new_award_name
-        nomination.status='Submitted'
+
+        nomination.status = 'Submitted'
         nomination.team_member_name = team_member_name
+
         db.session.commit()
         flash('Nomination updated successfully', 'success')
-        if 'user_id' not in session or session.get('access_level') == 'full_access':
-            return redirect(url_for('nomination_dashboard'))
-        else:
-            return redirect(url_for('user_dashboard'))
+        return redirect(url_for('view_nominees'))
+
     categories = Category.query.all()
     team_members = TeamMember.query.all()
-    return render_template('edit_nomination.html', nomination=nomination, categories=categories, team_members=team_members)
+
+    # Fetch all awards related to the nomination's category_id
+
+    quarterly_awards = QuarterlyAward.query.filter_by(category_id=nomination.category_id).all()
+    annually_awards = AnnuallyAward.query.filter_by(category_id=nomination.category_id).all()
+    awards = quarterly_awards + annually_awards
 
 
-@app.route('/admin')
+    return render_template('edit_nomination.html', nomination=nomination, categories=categories, team_members=team_members, awards=awards)
+
+
+@app.route('/user_access')
+@check_assign_access
+@login_required
+
+def user_access():
+    users= User.query.all()
+    return render_template('user_access.html', users=users)
+
+@app.route('/dashboard')
 @login_required
 def admin_dashboard():
-    if 'user_id' not in session or session['access_level'] != 'full_access':
-        return redirect(url_for('login'))
     users=User.query.all()
     categories = Category.query.all()
     return render_template('admin_dashboard.html', categories=categories,users=users)
 
-@app.route('/nomination_dashboard')
-@login_required
-def nomination_dashboard():
-    return render_template('nomination_dashboard.html')
-
-@app.route('/category_dashboard')
-@login_required
-def category_dashboard():
-    if 'user_id' not in session or session['access_level'] != 'full_access':
-        return redirect(url_for('login'))
-    return render_template('category_dashboard.html')
 
 
-@app.route('/user')
-@login_required
-def user_dashboard():
-    if 'user_id' not in session or session.get('role') != 'User':
-        return redirect(url_for('login'))
-    categories = Category.query.all()
-    user = User.query.filter_by(gid=session['gid']).first()
-    nominations = Nomination.query.filter_by(nominated_by_email=session['email']).all()
-    return render_template('user_dashboard.html', categories=categories, nominations=nominations, user=user)
 
-@app.route('/update_access/<int:user_id>', methods=['POST'])
-@login_required
-def update_access(user_id):
-    user = User.query.get_or_404(user_id)
-    new_access_level = request.form['access_level']
+@app.route('/update_access', methods=['POST'])
 
-    valid_access_levels = ['full_access', 'view_only', 'reviewer']
 
-    if new_access_level not in valid_access_levels:
-        flash('Invalid access level selected.', 'danger')
-        return redirect(url_for('admin_dashboard'))
-    
-    user.access_level = new_access_level
+def update_access():
+    user_id = request.form.get('user_id')
+    full_access = 'full_access' in request.form
 
-    db.session.commit()
-    if new_access_level == 'full_access':
-        message = f"Access level for user {user.username.capitalize()} updated to Admin Rights."
-    elif new_access_level == 'view_only':
-        message = f"Access level for user {user.username.capitalize()} updated to View Only Rights."
-    elif new_access_level == 'reviewer':
-        message = f"Access level for user {user.username.capitalize()} updated to Reviewer Rights."
+    nomination = 'nomination' in request.form
+
+    reviewer = 'reviewer' in request.form
+
+    manage_user = 'manage_user' in request.form
+
+    assign_access = 'assign_access' in request.form
+
+
+    # Handle full_access
+
+    if full_access:
+        role_name = 'full_access'
+        role = Role.query.filter_by(name=role_name).first()
+        if not role:
+            role = Role(name=role_name)
+            db.session.add(role)
+            db.session.commit()
+        user_role = UserRole.query.filter_by(user_id=user_id, role_id=role.id).first()
+        if user_role:
+            user_role.role_id = role.id
+
+            user_role.name = role_name
+
+        else:
+            user_role = UserRole(user_id=user_id, role_id=role.id, name=role_name)
+            db.session.add(user_role)
+        UserRole.query.filter(UserRole.user_id == user_id, UserRole.name != role_name).delete(synchronize_session='fetch')
+        db.session.commit()
     else:
-        message = f"Access level for user {user.username.capitalize()} updated to {new_access_level}."
-    flash(message, 'success')
-    return redirect(url_for('admin_dashboard'))
+        nomination_management_roles = []
+        if nomination or reviewer:
+            if reviewer:
+                nomination_management_roles.append('reviewer')
+            if nomination:
+                nomination_management_roles.append('edit_only')
 
+            for role_name in nomination_management_roles:
+                existing_role = UserRole.query.filter_by(user_id=user_id, name=role_name).first()
+                if existing_role is None:
+                    role = Role.query.filter_by(name=role_name).first()
+                    if not role:
+                        role = Role(name=role_name)
+                        db.session.add(role)
+                        db.session.commit()
+                    UserRole.query.filter(UserRole.user_id == user_id, UserRole.name.in_(['full_access', 'edit_only', 'reviewer'])).delete(synchronize_session='fetch')        
+                    user_role = UserRole(user_id=user_id, role_id=role.id, name=role_name)
+                    db.session.add(user_role)
+                else:
+                    pass
+
+            db.session.commit()
+
+        user_management_roles = []
+        if manage_user:
+            user_management_roles.append('manage_user')
+        if assign_access:
+            user_management_roles.append('assign_access')
+        
+        for role_name in ['manage_user', 'assign_access']:
+            if role_name not in user_management_roles:
+                UserRole.query.filter(UserRole.user_id == user_id, UserRole.name == role_name).delete(synchronize_session='fetch')
+            else:
+                existing_role = UserRole.query.filter_by(user_id=user_id, name=role_name).first()
+                if existing_role is None:
+                    role = Role.query.filter_by(name=role_name).first()
+                    if not role:
+                        role = Role(name=role_name)
+                        db.session.add(role)
+                        db.session.commit()
+                    user_role = UserRole(user_id=user_id, role_id=role.id, name=role_name)
+                    db.session.add(user_role)
+                UserRole.query.filter(UserRole.user_id == user_id, UserRole.name == 'full_access').delete(synchronize_session='fetch')
+        
+        db.session.commit()
+
+    # Condition to handle no roles selected for nomination or reviewer
+
+    if not (nomination or reviewer or full_access):
+        UserRole.query.filter(UserRole.user_id == user_id, UserRole.name.in_(['edit_only', 'reviewer'])).delete(synchronize_session='fetch')
+        
+        role = Role.query.filter_by(name='edit_only').first()
+        if not role:
+            role = Role(name='edit_only')
+            db.session.add(role)
+            db.session.commit()
+        
+        user_role = UserRole(user_id=user_id, role_id=role.id, name='edit_only')
+        db.session.add(user_role)
+        db.session.commit()
+
+    return redirect(url_for('user_access'))
 
 @app.route('/category', methods=['GET', 'POST'])
+@not_full_access
 @login_required
 def category():
-    if 'user_id' not in session or session.get('access_level') != 'full_access':
-        return redirect(url_for('login'))
     if request.method == 'POST':
         name = request.form['name']
         start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d')
         end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d')
         status=1
-        new_category = Category(name=name, start_date=start_date, end_date=end_date, status=status)
+        new_end_date_str = request.form['new_end_date']
+        new_end_date = datetime.strptime(new_end_date_str, '%Y-%m-%d').date()
+        extension_days = (new_end_date - end_date.date()).days
+        new_category = Category(name=name, start_date=start_date, end_date=end_date, status=status,extension_days=extension_days)
         db.session.add(new_category)
         db.session.commit()
         diff_months = (end_date.year - start_date.year) * 12 + end_date.month+1 - start_date.month
-        print(f"This is monthsss: {diff_months}")
-        print(f"This is IDD: {new_category.id}")
-
         if diff_months == 3:
             awards = [
                 "Core Value - Customer First",
@@ -302,35 +387,45 @@ def category():
                 db.session.add(award)
         db.session.commit()
         flash('Category added successfully', 'success')
-        return redirect(url_for('category_dashboard'))
+        return redirect(url_for('nomination_duration'))
     return render_template('category.html')
 
 
 @app.route('/category/edit/<int:category_id>', methods=['GET', 'POST'])
+@not_full_access
 @login_required
 def edit_category(category_id):
     category = Category.query.get_or_404(category_id)
+    extension_days = int(category.extension_days) if category.extension_days is not None else 0
+    new_date = (category.end_date + timedelta(days=extension_days)).strftime('%Y-%m-%d')
     if request.method == 'POST':
         category.name = request.form['name']
         start_date_str = request.form['start_date']
         end_date_str = request.form['end_date']
+        new_end_date_str = request.form['new_end_date']
 
         try:
             category.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             category.end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            new_end_date_str = request.form['new_end_date']
+            new_end_date = datetime.strptime(new_end_date_str, '%Y-%m-%d').date()
+            category.extension_days = (new_end_date - category.end_date).days
+            if (category.end_date + timedelta(days=category.extension_days)) > datetime.utcnow().date():
+                category.status = 1
             db.session.commit()
             flash('Category updated successfully', 'success')
-            return redirect(url_for('view_categories'))
+            return redirect(url_for('nomination_duration'))
         except ValueError as e:
             flash(f'Invalid date format: {e}', 'error')
-            return render_template('edit_category.html', category=category)
+            return render_template('edit_category.html', category=category, new_date=new_date)
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating category: {str(e)}', 'error')
 
-    return render_template('edit_category.html', category=category)
+    return render_template('edit_category.html', category=category,new_date=new_date)
 
 @app.route('/category/delete/<int:category_id>', methods=['GET','POST'])
+@not_full_access
 @login_required
 def delete_category(category_id):
 
@@ -345,76 +440,30 @@ def delete_category(category_id):
         db.session.rollback()
         flash(f'Error marking category as deleted: {str(e)}', 'error')
 
-    return redirect(url_for('view_categories'))
+    return redirect(url_for('nomination_duration'))
 
-@app.route('/extend_deadline/<int:category_id>', methods=['GET', 'POST'])
+
+@app.route('/nominations/new', methods=['GET', 'POST'])
 @login_required
-def extend_deadline(category_id):
-    if 'user_id' not in session or session.get('access_level') != 'full_access':
-        return redirect(url_for('login'))
-    category = Category.query.get_or_404(category_id)
-    if request.method == 'POST':
-        try:
-            new_end_date_str = request.form['new_end_date']
-            new_end_date = datetime.strptime(new_end_date_str, '%Y-%m-%d').date()
-
-            if new_end_date <= category.end_date.date():
-                flash('The new end date must be after the current end date.', 'danger')
-            else:
-                # Calculate the extension in days
-
-                extension_days = (new_end_date - category.end_date.date()).days
-
-                category.extension_days += extension_days
-
-
-                db.session.commit()
-                flash(f'Deadline extended to {new_end_date_str}.', 'success')
-        except ValueError:
-            flash('Invalid number of days.', 'danger')
-        return redirect(url_for('category_dashboard'))
-
-    return render_template('extend_deadline.html', category=category)
-
-
-@app.route('/select_category', methods=['GET', 'POST'])
-@login_required
-def select_category():
-    if 'user_id' not in session or session.get('access_level') == 'view_only':
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        category_id = request.form['category_id']
-        category = Category.query.get(category_id)
-        if category.is_deadline_extended():
-            return redirect(url_for('new_nomination', category_id=category_id))
-        else:
-            flash('The deadline for this category has passed.', 'danger')
-            
-            return redirect(url_for('select_category'))
-    
-    categories = Category.query.all()
-    return render_template('select_category.html', categories=categories)
-
-@app.route('/nominations/new/<int:category_id>', methods=['GET', 'POST'])
-@login_required
-def new_nomination(category_id):
-    if 'user_id' not in session or session.get('access_level') == 'view_only':
-        return redirect(url_for('login'))
-    cat = Category.query.get_or_404(category_id)
-    if not cat.is_deadline_extended():
-        flash('The deadline for this category has passed.', 'danger')
-        return redirect(url_for('select_category'))
+def new_nomination():
+    categories =  Category.query.filter_by(status=1).all()
+    default_category_id = categories[0].id if categories else None
     team_members = TeamMember.query.all()
     form = NominationForm()
-    form.category_id.choices = [(category.id, f"{category.name} ({category.start_date.strftime('%d-%B-%Y')} - {category.end_date.strftime('%d-%B-%Y')})") for category in Category.query.filter_by(status=1).all()]
+    form.category_id.choices = [(category.id, f"{category.name} ({category.start_date.strftime('%d-%B-%Y')} - {category.end_date.strftime('%d-%B-%Y')})") for category in categories]
     form.team_member_id.choices = [(member.id, member.name) for member in team_members]
     form.nominated_by_name.data = session['username']
     form.nominated_by_global_id.data = session['gid']
     form.nominated_by_email.data = session['email']
+    quarterly_awards = QuarterlyAward.query.filter_by(category_id=default_category_id).all()
+    annually_awards = AnnuallyAward.query.filter_by(category_id=default_category_id).all()
+    awards = quarterly_awards + annually_awards
+
+
     if form.validate_on_submit():
         team_member = TeamMember.query.get(form.team_member_id.data)
         team_member_name = team_member.name if team_member else None
+
         nomination = Nomination(
             category_id=form.category_id.data, 
             nominee_name=form.nominee_name.data, 
@@ -425,37 +474,19 @@ def new_nomination(category_id):
             nominated_by_email=form.nominated_by_email.data, 
             comments=form.comments.data, 
             status='Submitted',
-            award_name= request.form.get('award'),
+            award_name=request.form.get('award'),
             team_member_name=team_member_name,
-
         )
+        flash('Nomination added successfully', 'success')
         db.session.add(nomination)
-        category = Category.query.get_or_404(form.category_id.data)
-        if category:
-            category.start_date = datetime.strptime(str(category.start_date), "%Y-%m-%d %H:%M:%S").date()
-            category.end_date = datetime.strptime(str(category.end_date), "%Y-%m-%d %H:%M:%S").date()
-            diff_months = (category.end_date.year - category.start_date.year) * 12 + category.end_date.month+1 - category.start_date.month
-            if diff_months == 3:
-                award = QuarterlyAward.query.filter_by(name=request.form.get('award'), category_id=form.category_id.data).first()
-            elif diff_months == 12:
-                award = AnnuallyAward.query.filter_by(name=request.form.get('award'), category_id=form.category_id.data).first()
-
-            if award:
-                award.is_available = False
-
-                db.session.add(award)
         db.session.commit()
-        if 'user_id' not in session or session.get('access_level') == 'full_access':
-            return redirect(url_for('nomination_dashboard'))
-        else:
-            return redirect(url_for('user_dashboard'))
-    return render_template('new_nomination.html', form=form, team_members=team_members)
+        return redirect(url_for('view_nominees'))
+    return render_template('new_nomination.html', form=form, team_members=team_members, categories=categories, awards=awards)
 
 @app.route('/update_nomination/<int:nomination_id>', methods=['POST'])
+@approver_access
 @login_required
 def update_nomination_status(nomination_id):
-    if 'user_id' not in session or session.get('access_level') == 'view_only':
-        return redirect(url_for('login'))
     
     nomination = Nomination.query.get_or_404(nomination_id)
     action = request.form.get('action')
@@ -471,34 +502,30 @@ def update_nomination_status(nomination_id):
         flash('Nomination sent back for changes', 'warning')
 
     db.session.commit()
-    if 'user_id' not in session or session.get('access_level') == 'full_access':
-            return redirect(url_for('approval_page'))
-    else:
-            return redirect(url_for('user_dashboard'))
-    
+    return redirect(url_for('view_nominees'))
+
 @app.route('/view_nominees')
 @login_required
-def view_nominees():
-    nominees = Nomination.query.all()
-    nominee = Nomination.query.get(session['username'])
-    user = User.query.filter_by(gid=session['gid']).first()
-    return render_template('view_nominees.html', nominees=nominees, user= user,nominee=nominee)
 
-@app.route('/approval_page')
-@login_required
-def approval_page():
-    if 'user_id' not in session or session.get('access_level') != 'full_access':
-        return redirect(url_for('login'))
-    nominees = Nomination.query.all()
+def view_nominees():
     user = User.query.filter_by(gid=session['gid']).first()
-    return render_template('approval_page.html', nominees=nominees, user= user)
+    role_names = db.session.query(UserRole.name).filter(UserRole.user_id == user.id).all()
+    role_names_list = [role.name for role in role_names]
+    if 'full_access' in role_names_list or 'reviewer' in role_names_list:
+        nominees = Nomination.query.all()
+    elif 'edit_only' in role_names_list:
+        nominees = Nomination.query.filter_by(nominated_by_email=session['email']).all()
+    else:
+        nominees = []
+
+    return render_template('view_nominees.html', nominees=nominees, user=user,role_names_list=role_names_list)
+
 
 
 @app.route('/add_team_member', methods=['GET', 'POST'])
 @login_required
+@not_full_access
 def add_team_member():
-    if 'user_id' not in session or session.get('access_level') != 'full_access':
-        return redirect(url_for('login'))
     if request.method == 'POST':
         name = request.form.get('name')
         gid = request.form.get('gid')
@@ -515,56 +542,25 @@ def add_team_member():
 
 
 @app.route('/view_team_members')
+@not_full_access
 @login_required
 def view_team_members():
     team_members = TeamMember.query.all()
     return render_template('view_team_members.html', team_members=team_members)
 
 
-
 @app.route('/get_awards/<int:category_id>', methods=['GET'])
 def get_awards(category_id):
     try:
-        # Query both QuarterlyAward and AnnuallyAward where is_available is True
-
-        quarterly_awards = QuarterlyAward.query.filter_by(category_id=category_id, is_available=True).all()
-        annually_awards = AnnuallyAward.query.filter_by(category_id=category_id, is_available=True).all()
-        
-        # Combine the results and prepare the response
-
-        awards = [
-            {'id': award.id, 'name': award.name} 
-            for award in quarterly_awards + annually_awards
-
-        ]
-        
-        return jsonify(awards)
-    except Exception as e:
-        # Handle exceptions and return an error message
-
-        return jsonify({'error': str(e)}), 500
-    
-    
-@app.route('/get_Allawards/<int:category_id>', methods=['GET'])
-def get_Allawards(category_id):
-    try:
-        # Query both QuarterlyAward and AnnuallyAward where is_available is True
-
         quarterly_awards = QuarterlyAward.query.filter_by(category_id=category_id).all()
         annually_awards = AnnuallyAward.query.filter_by(category_id=category_id).all()
-        
-        # Combine the results and prepare the response
-
         awards = [
             {'id': award.id, 'name': award.name} 
             for award in quarterly_awards + annually_awards
-
-        ]
-        
+        ]        
         return jsonify(awards)
     except Exception as e:
-        # Handle exceptions and return an error message
-
-        return jsonify({'error': str(e)}), 500    
+        return jsonify({'error': str(e)}), 500
+       
 if __name__ == '__main__':
     app.run(debug=True)

@@ -2,74 +2,76 @@
 {% extends "base.html" %}
 <!DOCTYPE html>
 <html lang="en">
+    {% block content %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Admin Dashboard{% endblock %}</title>
+    <title>{% block title %}
+        {% if 'full_access' in session['access_level'] %}
+            Admin Dashboard
+    
+        {% else %}
+            Dashboard
+    
+        {% endif %}
+    {% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+        }
+        .container {
+            width: 100%;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 10px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        
+        
+        hr {
+            border: none;
+            border-top: 2px solid #ddd;
+            margin: 20px 0;
+        }
+        .no-data {
+            text-align: center;
+            color: #999;
+        }
+    </style>
 </head>
 <body>
-    {% block content %}
-<div class="container">
-    <h1>Welcome {{ session.username | capitalize}}</h1>
-    <h2>Admin Dashboard</h2>
-
-    <!-- Award Nomination Section -->
-    <section id="award-nomination">
-        <h3>Award Nominations</h3>
-        <a href="{{ url_for('nomination_dashboard') }}" class="button">Nomination Dashboard</a>
-        <a href="{{ url_for('category_dashboard') }}" class="button">Category Dashboard</a>
-    </section>
-    <hr>
-
-    <!-- User Management Section -->
-    <section id="user-management">
-        <h3>User Management</h3>
-        <a href="{{ url_for('register') }}">Create a New User</a>
-        
-        <h3>Assign Access</h3>
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Current Access</th>
-                    <th>Change Access</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                    {% if user.username != 'admin' %}
-                        <tr>
-                            <td>{{ user.username | capitalize }}</td>
-                            <td>
-                                {% if user.access_level == 'full_access' %}
-                                    Admin
-
-                                {% elif user.access_level == 'view_only' %}
-                                    View Only
-
-                                {% elif user.access_level == 'reviewer' %}
-                                    Reviewer
-
-                                {% endif %}
-                            </td>
-                            <td>
-                                <form method="POST" action="{{ url_for('update_access', user_id=user.id) }}">
-                                    <select name="access_level">
-                                        <option value="full_access" {% if user.access_level == 'full_access' %}selected{% endif %}>Full Access</option>
-                                        <option value="view_only" {% if user.access_level == 'view_only' %}selected{% endif %}>View Only</option>
-                                        <option value="reviewer" {% if user.access_level == 'reviewer' %}selected{% endif %}>Reviewer</option>
-                                    </select>
-                                    <button type="submit">Update</button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endif %}
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
-
-</div>
-{% endblock %}
+    
+    <div class="container">
+        <h1>Welcome {{ session.username | capitalize }}</h1>
+        <!-- Award Nomination Section -->
+        <section id="award-nomination">
+            <h3>Award Nominations</h3>
+            <a href="{{ url_for('view_nominees') }}" class="btn btn-success">Manage Nominees</a>
+            {% if 'full_access' in session.access_level %}
+                <a href="{{ url_for('view_team_members') }}" class="btn btn-success">Manage Team Members</a>
+            {% endif %}
+            <a href="{{ url_for('nomination_duration') }}" class="btn btn-success">Nomination Duration</a>
+        </section>
+        <hr>
+        {% if 'full_access' in session.access_level or 'manage_user' in session.access_level %}
+            <!-- User Management Section -->
+            <section id="user-management">
+                <h3>User Management</h3>
+                {% if 'full_access' in session.access_level or 'manage_user' in session.access_level %}
+                    <a href="{{ url_for('register') }}" class="btn btn-success">Create a New User</a>
+                {% endif %}
+                {% if 'full_access' in session.access_level or 'assign_access' in session.access_level %}
+                    <a href="{{ url_for('user_access') }}" class="btn btn-success">Assign Access</a>
+                {% endif %}
+                
+            </section>
+        {% endif %}
+    </div>
+    
 </body>
+{% endblock %}
 </html>

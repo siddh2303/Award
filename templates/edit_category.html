@@ -5,25 +5,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Edit Category{% endblock %}</title>
+    <title>{% block title %}Edit Nomination Duration{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 
 </head>
 <body>
+    <button class="btn btn-secondary back-button" onclick="history.back()">Back</button>
     <div class="container">
-        <h1>Edit Category</h1>
-        <form method="POST">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" value="{{ category.name }}" required>
+        <h1>Edit Nomination Duration</h1>
+        <form method="POST" class="form-group">
+            <label for="name" class="form-label">Name:</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ category.name }}" required>
             <br>
-            <label for="start_date">Start Date:</label>
-            <input type="date" id="start_date" name="start_date" value="{{ category.start_date.strftime('%Y-%m-%d') }}" required>
+            <label for="start_date" class="form-label">Start Date:</label>
+            <input type="date" id="start_date" class="form-control" name="start_date" value="{{ category.start_date.strftime('%Y-%m-%d') }}" required>
             <br>
-            <label for="end_date">End Date:</label>
-            <input type="date" id="end_date" name="end_date" value="{{ category.end_date.strftime('%Y-%m-%d') }}" required>
+            <label for="end_date" class="form-label">End Date:</label>
+            <input type="date" id="end_date" class="form-control" name="end_date" value="{{ category.end_date.strftime('%Y-%m-%d') }}" required>
             <br>
-            <button type="submit">Save Changes</button>
+            {% set extension_days = category.extension_days if category.extension_days is not none else 0 %}
+            <label for="new_end_date" class="form-label">Nomination Form opened Untill:</label>
+            <input type="date" name="new_end_date" class="form-control" id="new_end_date" value="{{ new_date }}" required>
+            <br>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
         </form>
-        <p><a href="{{ url_for('view_categories') }}">Back to Categories</a></p>
+
     </div>
 </body>
 {% endblock %}

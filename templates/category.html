@@ -3,31 +3,38 @@
 
 <!DOCTYPE html>
 <html lang="en">
+    {% block content %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Add Category{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    {% block content %}
+    <button class="btn btn-secondary back-button" onclick="history.back()">Back</button>
     <div class="container">
         <h2>Award Category</h2>
-        <form method="POST" action="{{ url_for('category') }}">
+        <form method="POST" action="{{ url_for('category') }}" class="form-group">
             <div>
-                <label for="name">Name</label>
-                <input type="text" name="name" required>
-            </div>
+                <label for="name" class="form-label">Name</label>
+                <input type="text" name="name" class="form-control" required>
+            </div><br>
             <div>
-                <label for="start_date">Start Date</label>
-                <input type="date" name="start_date" required>
-            </div>
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" class="form-control" name="start_date" required>
+            </div><br>
             <div>
-                <label for="end_date">End Date</label>
-                <input type="date" name="end_date" required>
-            </div>
-            <button type="submit">Add Category</button>
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" required>
+            </div><br>
+            <div>
+                <label for="new_end_date" class="form-label">Nomination Form opened Until:</label>
+                <input type="date" name="new_end_date" class="form-control" id="new_end_date" required>
+            </div><br>
+            <button type="submit" class="btn btn-primary">Add Category</button>
         </form>
     </div>
-    {% endblock %}
+
 </body>
+{% endblock %}
 </html>

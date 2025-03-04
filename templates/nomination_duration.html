@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+<!DOCTYPE html>
+<html lang="en">
+    {% block content %}
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Nomination Duration{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .container{
+            padding: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        a.button {
+            padding: 6px 12px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        a.button.delete {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <button class="btn btn-secondary back-button" onclick="history.back()">Back</button><br><br>
+    {% if categories %}
+    <div class="container">
+        {% if 'full_access' in session['access_level'] %}
+            <a href="{{ url_for('category') }}" class="button">Create a New Nomination Duration</a><br>
+        {% endif %}
+        <h2>Nomination Duration</h2><br>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Nomination opened Until</th>
+                    {% if 'full_access' in session['access_level'] %}
+                        <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                {% set start_date = category.start_date.strftime('%d-%B-%Y') %}
+                {% set end_date = category.end_date.strftime('%d-%B-%Y') %}
+                <tr>
+                    <td>{{ category.name }}</td>
+                    <td>{{ start_date }}</td>
+                    <td>{{ end_date }}</td>
+                    <td>
+                        {% set extension_days = category.extension_days if category.extension_days is not none else 0 %}
+                        {% if extension_days == 0 %}
+                            -
+                        {% else %}
+                            {{ (category.end_date + timedelta(days=extension_days)).strftime('%d-%B-%Y') }}
+                        {% endif %}
+                    </td>
+                    {% if 'full_access' in session.access_level %}
+                        <td>
+                            <a href="{{ url_for('edit_category', category_id=category.id) }}" class="button">Edit</a>
+                            <a href="{{ url_for('delete_category', category_id=category.id) }}" class="button delete">Delete</a>
+                        </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <h5>No Categories Yet</h5>
+        {% endif %}
+    </div>
+    
+</body>
+{% endblock %}
+</html>

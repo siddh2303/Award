@@ -7,18 +7,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Add Team Member{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+    <button class="btn btn-secondary back-button" onclick="history.back()">Back</button>
     <div class="container">
         <h1>Add New Team Member</h1>
-        <form method="POST">
-            <label for="name">Name:</label>
-            <input type="text" name="name" required>
-            <label for="gid">GID:</label>
-            <input type="text" name="gid" required>
-            <label for="email">Email:</label>
-            <input type="email" name="email" required>
-            <button type="submit">Add Team Member</button>
+        <form method="POST" class="form-group">
+            <label for="name" class="form-label">Name:</label>
+            <input type="text" name="name" class="form-control" required><br>
+            <label for="gid" class="form-label">GID:</label>
+            <input type="text" name="gid" class="form-control" required><br>
+            <label for="email" class="form-label">Email:</label>
+            <input type="email" name="email" class="form-control" required><br>
+            <button type="submit" class="btn btn-primary">Add Team Member</button>
         </form>
     </div>
 </body>

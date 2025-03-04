@@ -2,20 +2,23 @@
 {% extends "base.html" %}
 <!doctype html>
 <html lang="en">
+    {% block content %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}New Nomination{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
 
 </head>
 <body>
-    {% block content %}
+    <button class="btn btn-secondary back-button" onclick="history.back()">Back</button>
     <h2>New Nomination</h2>
     <form method="POST">
         {{ form.hidden_tag() }}
         <p>
             {{ form.category_id.label }}<br>
-            <select id="category" name="category_id" onchange="updateAwardsList()">
+            <select id="category" name="category_id" class="form-control" onchange="updateAwardsList()">
                 <option value="">Select Category</option>
                 {% for category_id, category_name in form.category_id.choices %}
                     <option value="{{ category_id }}">{{ category_name }}</option>
@@ -25,36 +28,37 @@
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
+
         <p>
-            <label for="award">Award:</label><br>
-            <select id="award" name="award">
+            <label for="award" class="form-label">Award:</label><br>
+            <select id="award" name="award" class="form-control">
                 <option value="">Select an Award</option>
             </select>
         </p>
         <p>
             {{ form.nominee_name.label }}<br>
-            {{ form.nominee_name(size=32) }}<br>
+            {{ form.nominee_name(class_="form-control", size=32) }}<br>
             {% for error in form.nominee_name.errors %}
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
             {{ form.nominee_global_id.label }}<br>
-            {{ form.nominee_global_id(size=32) }}<br>
+            {{ form.nominee_global_id(class_="form-control",size=32) }}<br>
             {% for error in form.nominee_global_id.errors %}
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
             {{ form.nominee_email.label }}<br>
-            {{ form.nominee_email(size=32) }}<br>
+            {{ form.nominee_email(class_="form-control",size=32) }}<br>
             {% for error in form.nominee_email.errors %}
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
             {{ form.nominated_by_name.label }}<br>
-            {{ form.nominated_by_name(size=32, readonly=True) }}<br>
+            {{ form.nominated_by_name(class_="form-control",size=32, readonly=True) }}<br>
             {% for error in form.nominated_by_name.errors %}
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
@@ -62,7 +66,7 @@
         
         <p>
             {{ form.nominated_by_global_id.label }}<br>
-            {{ form.nominated_by_global_id(size=32, readonly=True) }}<br>
+            {{ form.nominated_by_global_id(class_="form-control",size=32, readonly=True) }}<br>
             {% for error in form.nominated_by_global_id.errors %}
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
@@ -70,30 +74,29 @@
         
         <p>
             {{ form.nominated_by_email.label }}<br>
-            {{ form.nominated_by_email(size=32, readonly=True) }}<br>
+            {{ form.nominated_by_email(class_="form-control",size=32, readonly=True) }}<br>
             {% for error in form.nominated_by_email.errors %}
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
             <label for="team_member">Team Member:</label><br>
-            {{ form.team_member_id() }}
+            {{ form.team_member_id(class_="form-control") }}<br>
             {% for error in form.team_member_id.errors %}
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
             {{ form.comments.label }}<br>
-            {{ form.comments() }}<br>
+            {{ form.comments(class_="form-control") }}<br>
         </p>
         <p>
             {{ form.status.label }}<br>
-            {{ form.status(disabled=True) }}<br>
+            {{ form.status(class_="form-control", disabled=True) }}<br>
             <input type="hidden" name="status" value="In-progress">
         </p>
-        <p>{{ form.submit() }}</p>
+        <p>{{ form.submit(class_="btn btn-primary") }}</p>
     </form>
-
     <script>
         function updateAwardsList() {
             var categoryId = document.getElementById('category').value;
@@ -116,6 +119,6 @@
             }
         }
     </script>
-    {% endblock %}
 </body>
+{% endblock %}
 </html>

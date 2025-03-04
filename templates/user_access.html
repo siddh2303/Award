@@ -1,0 +1,177 @@
+
+{% extends "base.html" %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}User Access Management{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .no-data {
+            text-align: center;
+            color: #999;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        select {
+            padding: 5px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <button class="btn btn-secondary back-button" onclick="history.back()">Back</button><br>
+    <div class="container mt-5">
+        <h3>Select User and Set Access</h3>
+        <form method="POST" action="{{ url_for('update_access', user_id=1 ) }}">
+            <!-- Dropdown to select user -->
+            <div class="form-group">
+                <label for="userSelect">Select User:</label>
+                <select id="userSelect" name="user_id" class="form-control">
+                    {% for u in users %}
+                        {% if u.username != 'admin' %}
+                            <option value="{{ u.id }}">{{ u.username | capitalize }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Full Access Checkbox -->
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="full_access" id="fullAccessCheckbox"> Set Full Access
+
+                </label>
+            </div>
+            
+            <!-- Award Nomination Checkboxes -->
+            <div class="row">
+                <!-- Award Nomination Checkboxes -->
+                <div class="col-md-6">
+                    <h4>Award Nomination</h4>
+                    <label>
+                        <input type="checkbox" name="nomination" id="nominationCheckbox"> Nomination
+
+                    </label>
+                    <br>
+                    <label>
+                        <input type="checkbox" name="reviewer" id="reviewerCheckbox"> Reviewer
+
+                    </label>
+                </div>
+
+                <!-- User Management Options -->
+                <div class="col-md-6">
+                    <h4>User Management</h4>
+                    <label>
+                        <input type="checkbox" name="manage_user" id="manageUserCheckbox"> Manage User
+                    </label>
+                    <br>
+                    <label>
+                        <input type="checkbox" name="assign_access" id="assignAccessCheckbox"> Assign Access
+                    </label>
+                </div>
+            </div>
+            
+            
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+
+        {% if users %}
+            <h4>Current Access</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Current Access</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        {% if user.username != 'admin' %}
+                            <tr>
+                                <td>{{ user.username | capitalize }}</td>
+                                <td>
+                                    {% set role_names = user.user_roles | map(attribute='name') | join(', ') %}
+                                    {{ role_names }}
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="no-data">No Users Yet</p>
+        {% endif %}
+    </div>
+
+    <script>
+        document.getElementById('fullAccessCheckbox').addEventListener('change', function() {
+            var isFullAccessChecked = this.checked;
+            var nominationCheckbox = document.getElementById('nominationCheckbox');
+            var reviewerCheckbox = document.getElementById('reviewerCheckbox');
+            var manageUserCheckbox = document.getElementById('manageUserCheckbox');
+            var assignAccessCheckbox = document.getElementById('assignAccessCheckbox');
+
+            nominationCheckbox.disabled = isFullAccessChecked;
+            reviewerCheckbox.disabled = isFullAccessChecked;
+            manageUserCheckbox.disabled = isFullAccessChecked;
+            assignAccessCheckbox.disabled = isFullAccessChecked;
+
+            if (isFullAccessChecked) {
+                nominationCheckbox.checked = false;
+                reviewerCheckbox.checked = false;
+                manageUserCheckbox.checked = false;
+                assignAccessCheckbox.checked = false;
+            }
+        });
+
+        document.getElementById('reviewerCheckbox').addEventListener('change', function() {
+            var isReviewerChecked = this.checked;
+            var nominationCheckbox = document.getElementById('nominationCheckbox');
+            if (isReviewerChecked) {
+                if(nominationCheckbox.checked == true){
+                    nominationCheckbox.checked = true;
+                    pass
+                }
+                else{
+                    nominationCheckbox.checked = false;
+                }
+            }
+            nominationCheckbox.disabled = isReviewerChecked;
+        });
+
+        document.getElementById('nominationCheckbox').addEventListener('change', function() {
+            var isNominationChecked = this.checked;
+            var reviewerCheckbox = document.getElementById('reviewerCheckbox');
+            
+        });
+    </script>
+</body>
+</html>
+{% endblock %}

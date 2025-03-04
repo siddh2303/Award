@@ -8,6 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ self.title() }}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .container {
             max-width: 800px;
@@ -30,7 +31,9 @@
     </style>
 </head>
 <body>
+    <button class="btn btn-secondary back-button" onclick="history.back()">Back</button>
     <div class="container">
+        <a href="{{ url_for('add_team_member') }}" class="btn btn-success">Add Team Member</a>
         <h1>Team Members</h1>
         <table>
             <thead>
